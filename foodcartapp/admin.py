@@ -7,12 +7,16 @@ from .models import Product
 from .models import ProductCategory
 from .models import Restaurant
 from .models import RestaurantMenuItem
-
+from .models import Order
+from .models import Basket
 
 class RestaurantMenuItemInline(admin.TabularInline):
     model = RestaurantMenuItem
     extra = 0
 
+class BasketInline(admin.TabularInline):
+    model = Basket
+    extra = 0
 
 @admin.register(Restaurant)
 class RestaurantAdmin(admin.ModelAdmin):
@@ -103,4 +107,12 @@ class ProductAdmin(admin.ModelAdmin):
 
 @admin.register(ProductCategory)
 class ProductAdmin(admin.ModelAdmin):
+    pass
+
+@admin.register(Order)
+class OrderAdmin(admin.ModelAdmin):
+    search_fields = ['id','firstname', 'lastname','phonenumber','address']
+    # sortable_by = ['id','firstname', 'lastname','phonenumber','address']
+    ordering = ['id']
+    inlines = [BasketInline]
     pass

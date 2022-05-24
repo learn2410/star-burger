@@ -27,6 +27,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'phonenumber_field',
+    'rest_framework',
     'debug_toolbar',
 ]
 
@@ -123,3 +124,8 @@ STATICFILES_DIRS = [
     os.path.join(BASE_DIR, "assets"),
     os.path.join(BASE_DIR, "bundles"),
 ]
+
+# the next code will activate panel DjDT (OS-Windows)
+if DEBUG:
+    import mimetypes
+    mimetypes.add_type("application/javascript", ".js", True)

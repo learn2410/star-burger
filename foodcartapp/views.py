@@ -1,6 +1,9 @@
 from django.http import JsonResponse
 from django.templatetags.static import static
 import json
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+
 
 from .models import Product,Order,Basket
 
@@ -56,16 +59,16 @@ def product_list_api(request):
         'indent': 4,
     })
 
-
+@api_view(['POST'])
 def register_order(request):
     try:
-        data = json.loads(request.body.decode())
+        data=request.data
     except ValueError:
         return JsonResponse({
             'error': 'order request error',
         })
     products=data.pop('products')
-    # print(products,'\n',data)
+
     if len(products)==0:
         return JsonResponse({
             'error': 'no products in order',
@@ -75,4 +78,4 @@ def register_order(request):
     bulk_list=[Basket(order_id=order.id,quantity=product['quantity'],product_id=product['product'])
         for product in products]
     Basket.objects.bulk_create(bulk_list)
-    return JsonResponse({})
+    return Response({})

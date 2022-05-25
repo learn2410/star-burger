@@ -3,7 +3,9 @@ from django.templatetags.static import static
 import json
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-
+import phonenumbers
+from phonenumbers import NumberParseException
+import re
 
 from .models import Product,Order,Basket
 
@@ -90,6 +92,24 @@ def is_order_ok(checked_order):
         for key,value in product.items():
             if not isinstance(value, int):
                 return f"'{key}' in [products] data type is not int"
+    #--check values in order
+    for key,value in order.items():
+        if key in [ "firstname", "lastname", "address"] and not re.search('.*\w+.*',value):
+            return f"field '{key}' not contain information"
+        elif key=='phonenumber':
+            try:
+                if not phonenumbers.is_valid_number(phonenumbers.parse(value, "RU")):
+                    return "field 'phonenumber' is not corrct"
+            except NumberParseException:
+                return "field 'phonenumber' is not corrct"
+    #--check values in products
+    all_products=list(Product.objects.all().values_list('pk', flat=True))
+    for product in products:
+        for key,value in product.items():
+            if key=="product" and value not in all_products:
+                return f'product {value} not exists'
+            elif key=="quantity" and not 0<value<=300:
+                return f'product quantity is wrong ({value})'
     #-- if all ok
     return ''
 

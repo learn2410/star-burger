@@ -59,21 +59,59 @@ def product_list_api(request):
         'indent': 4,
     })
 
+def is_order_ok(checked_order):
+    order=checked_order.copy()
+    #--check fields
+    required_fields = {"products", "firstname", "lastname", "phonenumber", "address"}
+    if set(order.keys()) != required_fields:
+        absent_fields = required_fields.difference(set(order.keys()))
+        return f'no required fields {str(absent_fields)}'
+    #--check fields no None
+    for key in required_fields:
+        if order[key] is None:
+            return f"field '{key}' is None"
+    products=order.pop('products')
+    #--check list and fields in products
+    if not isinstance(products, list):
+        return "'products' data type is not list"
+    if len(products)==0:
+        return 'list of products empty'
+    for product in products:
+        if not isinstance(product, dict):
+            return 'one element type of products is not dict'
+        if set(product.keys()) != {"product","quantity"}:
+            return 'one element of products is not content required field'
+    #-- check types in order
+    for key,value in order.items():
+        if not isinstance(value,str):
+            return f"'{key}' data type is not str"
+    #-- check types in products
+    for product in products:
+        for key,value in product.items():
+            if not isinstance(value, int):
+                return f"'{key}' in [products] data type is not int"
+    #-- if all ok
+    return ''
+
 @api_view(['POST'])
 def register_order(request):
     try:
-        data=request.data
+        order=request.data
     except ValueError:
         return JsonResponse({
             'error': 'order request error',
         })
-    products=data.pop('products')
+
+    order_error=is_order_ok(order)
+    if order_error:
+        return Response({'error':order_error})
+    products=order.pop('products')
 
     if len(products)==0:
         return JsonResponse({
             'error': 'no products in order',
         })
-    order=Order(**data)
+    order=Order(**order)
     order.save()
     bulk_list=[Basket(order_id=order.id,quantity=product['quantity'],product_id=product['product'])
         for product in products]

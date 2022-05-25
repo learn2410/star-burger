@@ -1,15 +1,10 @@
 from django.http import JsonResponse
 from django.templatetags.static import static
-import json
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework.serializers import ModelSerializer
 
-import phonenumbers
-from phonenumbers import NumberParseException
-import re
-
-from .models import Product,Order,Basket
+from .models import Product, Order, Basket
 
 
 def banners_list_api(request):
@@ -67,14 +62,15 @@ def product_list_api(request):
 class ProductsSerializer(ModelSerializer):
     class Meta:
         model = Basket
-        fields = ['product','quantity']
+        fields = ['product', 'quantity']
+
 
 class OrderSerializer(ModelSerializer):
-    products = ProductsSerializer(many=True,allow_empty=False)
+    products = ProductsSerializer(many=True, allow_empty=False)
 
     class Meta:
         model = Order
-        fields=['firstname','lastname','phonenumber','address','products']
+        fields = ['firstname', 'lastname', 'phonenumber', 'address', 'products']
 
 
 @api_view(['POST'])
@@ -82,13 +78,13 @@ def register_order(request):
     serializer = OrderSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
 
-    order_fields = ['firstname','lastname','phonenumber','address']
+    order_fields = ['firstname', 'lastname', 'phonenumber', 'address']
     order_data = {field: serializer.validated_data[field] for field in order_fields}
     order = Order.objects.create(**order_data)
 
     products_fields = serializer.validated_data['products']
-    basket = [Basket(order=order,**fields) for fields in products_fields]
+    basket = [Basket(order=order, **fields) for fields in products_fields]
     Basket.objects.bulk_create(basket)
-    answer={'id':order.id}
+    answer = {'id': order.id}
     answer.update({field: serializer.validated_data[field] for field in order_fields})
     return Response(answer)

@@ -1,6 +1,7 @@
-from django.db import models
 from django.core.validators import MinValueValidator
+from django.db import models
 from phonenumber_field.modelfields import PhoneNumberField
+
 
 class Restaurant(models.Model):
     name = models.CharField(
@@ -30,8 +31,8 @@ class ProductQuerySet(models.QuerySet):
     def available(self):
         products = (
             RestaurantMenuItem.objects
-            .filter(availability=True)
-            .values_list('product')
+                .filter(availability=True)
+                .values_list('product')
         )
         return self.filter(pk__in=products)
 
@@ -121,23 +122,25 @@ class RestaurantMenuItem(models.Model):
     def __str__(self):
         return f"{self.restaurant.name} - {self.product.name}"
 
+
 class Order(models.Model):
-    firstname=models.CharField('Имя',max_length=50,db_index=True)
-    lastname=models.CharField('Фамилия',max_length=50,db_index=True)
-    phonenumber=PhoneNumberField('Телефон',db_index=True)
-    address=models.CharField('Адрес',max_length=100,db_index=True)
+    firstname = models.CharField('Имя', max_length=50, db_index=True)
+    lastname = models.CharField('Фамилия', max_length=50, db_index=True)
+    phonenumber = PhoneNumberField('Телефон', db_index=True)
+    address = models.CharField('Адрес', max_length=100, db_index=True)
 
     class Meta:
         verbose_name = 'заказ'
         verbose_name_plural = 'заказы'
 
     def __str__(self):
-        return(f'{self.id} ({self.firstname} {self.lastname} тел.{self.phonenumber}, {self.address})')
+        return (f'{self.id} ({self.firstname} {self.lastname} тел.{self.phonenumber}, {self.address})')
+
 
 class Basket(models.Model):
-    order= models.ForeignKey(Order, on_delete=models.CASCADE, related_name='basket',verbose_name='Заказ')
-    product=models.ForeignKey(Product,on_delete=models.CASCADE, related_name='food',verbose_name='Продукт')
-    quantity=models.PositiveIntegerField(verbose_name='Количество')
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='basket', verbose_name='Заказ')
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='food', verbose_name='Продукт')
+    quantity = models.PositiveIntegerField(verbose_name='Количество')
 
     class Meta:
         verbose_name = 'в заказе'

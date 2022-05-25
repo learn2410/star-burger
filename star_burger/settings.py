@@ -1,16 +1,13 @@
 import os
 
 import dj_database_url
-
 from environs import Env
-
 
 env = Env()
 env.read_env()
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-
 
 SECRET_KEY = env('SECRET_KEY', 'etirgvonenrfnoerngorenogneongg334g')
 DEBUG = env.bool('DEBUG', False)
@@ -119,7 +116,6 @@ INTERNAL_IPS = [
     '127.0.0.1'
 ]
 
-
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, "assets"),
     os.path.join(BASE_DIR, "bundles"),
@@ -128,4 +124,5 @@ STATICFILES_DIRS = [
 # the next code will activate panel DjDT (OS-Windows)
 if DEBUG:
     import mimetypes
+
     mimetypes.add_type("application/javascript", ".js", True)

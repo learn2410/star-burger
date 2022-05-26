@@ -66,25 +66,22 @@ class ProductsSerializer(ModelSerializer):
 
 
 class OrderSerializer(ModelSerializer):
-    products = ProductsSerializer(many=True, allow_empty=False)
+    products = ProductsSerializer(many=True, allow_empty=False,write_only=True)
 
     class Meta:
         model = Order
-        fields = ['firstname', 'lastname', 'phonenumber', 'address', 'products']
+        read_only_fields = ['id']
+        fields = ['id','firstname', 'lastname', 'phonenumber', 'address', 'products']
 
 
 @api_view(['POST'])
 def register_order(request):
     serializer = OrderSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
-
-    order_fields = ['firstname', 'lastname', 'phonenumber', 'address']
-    order_data = {field: serializer.validated_data[field] for field in order_fields}
+    order_data = {field: serializer.validated_data[field]
+                  for field in ['firstname', 'lastname', 'phonenumber', 'address']}
     order = Order.objects.create(**order_data)
-
-    products_fields = serializer.validated_data['products']
-    basket = [Basket(order=order, **fields) for fields in products_fields]
+    basket = [Basket(order=order, **fields)
+              for fields in serializer.validated_data['products']]
     Basket.objects.bulk_create(basket)
-    answer = {'id': order.id}
-    answer.update({field: serializer.validated_data[field] for field in order_fields})
-    return Response(answer)
+    return Response(OrderSerializer(order).data)

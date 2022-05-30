@@ -141,6 +141,12 @@ class Basket(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='basket', verbose_name='Заказ')
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='food', verbose_name='Продукт')
     quantity = models.PositiveIntegerField(verbose_name='Количество')
+    cost = models.DecimalField(
+        'зафиксированная цена',
+        max_digits=8,
+        decimal_places=2,
+        validators=[MinValueValidator(0)],
+    )
 
     class Meta:
         verbose_name = 'в заказе'

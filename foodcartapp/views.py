@@ -3,7 +3,7 @@ from django.templatetags.static import static
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework.serializers import ModelSerializer
-
+from django.db.models import F,Subquery,OuterRef
 from .models import Product, Order, Basket
 
 
@@ -81,7 +81,7 @@ def register_order(request):
     order_data = {field: serializer.validated_data[field]
                   for field in ['firstname', 'lastname', 'phonenumber', 'address']}
     order = Order.objects.create(**order_data)
-    basket = [Basket(order=order, **fields)
+    basket = [Basket(order=order,cost=fields['product'].price,**fields)
               for fields in serializer.validated_data['products']]
     Basket.objects.bulk_create(basket)
     return Response(OrderSerializer(order).data)

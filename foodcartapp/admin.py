@@ -16,9 +16,6 @@ class RestaurantMenuItemInline(admin.TabularInline):
     extra = 0
 
 
-class BasketInline(admin.TabularInline):
-    model = Basket
-    extra = 0
 
 
 @admin.register(Restaurant)
@@ -115,11 +112,15 @@ class ProductAdmin(admin.ModelAdmin):
 class ProductAdmin(admin.ModelAdmin):
     pass
 
+class BasketInline(admin.TabularInline):
+    model = Basket
+    extra = 0
+    fields = ('order','product','quantity','cost')
+    readonly_fields = ('cost',)
 
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
     search_fields = ['id', 'firstname', 'lastname', 'phonenumber', 'address']
-    # sortable_by = ['id','firstname', 'lastname','phonenumber','address']
     ordering = ['id']
     inlines = [BasketInline]
     pass

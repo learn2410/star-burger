@@ -1,7 +1,8 @@
 from django.core.validators import MinValueValidator
 from django.db import models
 from phonenumber_field.modelfields import PhoneNumberField
-
+from django.db.models.signals import pre_save
+from django.dispatch import receiver
 
 class Restaurant(models.Model):
     name = models.CharField(
@@ -140,7 +141,11 @@ class Order(models.Model):
 class Basket(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='basket', verbose_name='Заказ')
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='food', verbose_name='Продукт')
-    quantity = models.PositiveIntegerField(verbose_name='Количество')
+    quantity = models.PositiveIntegerField(
+        verbose_name='Количество',
+        validators=[MinValueValidator(1)],
+        default=1,
+    )
     cost = models.DecimalField(
         'зафиксированная цена',
         max_digits=8,
@@ -157,3 +162,13 @@ class Basket(models.Model):
 
     def __str__(self):
         return f"{self.product.name} - {self.quantity} шт. (заказ № {self.order.pk} )"
+
+@receiver(pre_save, sender=Basket)
+def default_basket(sender, instance, **kwargs):
+    try:
+        basket_item = sender.objects.get(pk=instance.pk)
+    except sender.DoesNotExist:
+        instance.cost=instance.product.price
+    else:
+        if not instance.cost or basket_item.product_id != instance.product_id:
+            instance.cost = instance.product.price

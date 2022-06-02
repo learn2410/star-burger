@@ -132,7 +132,13 @@ class Order(models.Model):
         ("CANCEL", "отменен"),
         ("FINISH", "завершен"),
     )
+    PAYMENTS = (
+        ("CASH", "наличные"),
+        ("ELEСTRON", "безналичные"),
+        ("UNDEFINED","-не указано"),
+    )
     status = models.CharField("Статус", max_length=10,  db_index=True, choices=STATUSES, default="START")
+    payment = models.CharField("Оплата", max_length=10, db_index=True, choices=PAYMENTS, default="UNDEFINED")
     firstname = models.CharField('Имя', max_length=50, db_index=True)
     lastname = models.CharField('Фамилия', max_length=50, db_index=True)
     phonenumber = PhoneNumberField('Телефон', db_index=True)

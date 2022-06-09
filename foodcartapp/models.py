@@ -160,7 +160,7 @@ class Order(models.Model):
 
     def can_cook(self, by_name=False):
         ''' resaurants who can cook ordered products, return tuple of restaurant_id (or restaurant_name)'''
-        ordered_productsgit  = Basket.objects.filter(order_id=self.id).values_list('product_id', flat=True)
+        ordered_products = Basket.objects.filter(order_id=self.id).values_list('product_id', flat=True)
         return RestaurantMenuItem.objects \
             .values('restaurant') \
             .annotate(xprod=Count('product', product__in=ordered_products, availability=True)) \

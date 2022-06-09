@@ -1,3 +1,5 @@
+from collections import defaultdict
+
 from django import forms
 from django.shortcuts import redirect, render
 from django.views import View
@@ -8,7 +10,7 @@ from django.contrib.auth import authenticate, login
 from django.contrib.auth import views as auth_views
 from django.db.models import Sum,F
 
-from foodcartapp.models import Product, Restaurant,Order
+from foodcartapp.models import Product, Restaurant,Order,RestaurantMenuItem
 
 
 class Login(forms.Form):
@@ -94,10 +96,27 @@ def view_restaurants(request):
         'restaurants': Restaurant.objects.all(),
     })
 
+def who_can_cook_orders():
+    available_products = defaultdict(set)
+    [available_products[product].add(restaurant) for restaurant, product in RestaurantMenuItem.objects \
+        .filter(availability=True).select_related('restaurant').values_list('restaurant__name', 'product_id')]
+    ordered_products = defaultdict(set)
+    [ordered_products[order].add(product) for order, product in Order.objects \
+        .select_related('basket').filter(status='START').values_list('id', 'basket__product_id')]
+    x = {}
+    for order, basket in ordered_products.items():
+        x.update({order: list(set.intersection(*[available_products[b] for b in basket]))})
+    return x
 
 @user_passes_test(is_manager, login_url='restaurateur:login')
 def view_orders(request):
-    orders = Order.objects.filter(status__in=("START","WORK"))\
-    .order_by('id')\
-    .annotate(cost=Sum(F('basket__cost') * F('basket__quantity')))
+    fields = ('id', 'status', 'phonenumber', 'address', 'comment', 'restaurant__name')
+    can_cook = who_can_cook_orders()
+    orders = list(Order.objects.filter(status__in=("START","WORK")) \
+        .select_related('restaurant', 'basket') \
+        .order_by('status','id') \
+        .values(*fields))
+        # .annotate(cost=Sum(F('basket__cost') * F('basket__quantity')))
+    for order in orders:
+        order.update({'cancook': can_cook[order['id']] if order['id'] in can_cook else []})
     return render(request, template_name='order_items.html', context={'orders':orders})

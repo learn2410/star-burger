@@ -131,3 +131,12 @@ class OrderAdmin(admin.ModelAdmin):
         if "next" in request.GET and url_has_allowed_host_and_scheme(request.GET['next'], settings.ALLOWED_HOSTS):
             return redirect(request.GET['next'])
         return super().response_post_save_change(request, obj)
+
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        '''limit the choice of restaurants to those who can cook'''
+        if db_field.name == "restaurant":
+            path = str(request.path).split('/')
+            if path[-2] == 'change':
+                filter = Order.objects.get(pk=int(path[-3])).can_cook()
+                kwargs["queryset"] = Restaurant.objects.filter(id__in=filter)
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)

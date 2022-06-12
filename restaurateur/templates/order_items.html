@@ -33,13 +33,17 @@
             Готовит: {{ order.restaurant__name }}
           {% elif order.status == 'START' %}
             {% if order.cancook %}
-              <details><summary>▼Может быть приготовлен:</summary>
-                <ul>
-                  {% for rest in order.cancook %}
-                    <li>{{ rest }}</li>
-                  {% endfor %}
-                </ul>
-              </details>
+              {% if order.cancook.0.distance < 36000 %}
+                <details><summary>▼Может быть приготовлен:</summary>
+                  <ul>
+                    {% for rest in order.cancook %}
+                      <li>{{ rest.name }} ({{ rest.distance|floatformat:1 }} км.)</li>
+                    {% endfor %}
+                  </ul>
+                </details>
+              {% else %}
+                Ошибка определения координат
+              {%  endif %}
             {%  else %}
               Нельзя приготовить
             {% endif %}

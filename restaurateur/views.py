@@ -1,4 +1,4 @@
-from collections import defaultdict
+from collections import defaultdict,namedtuple
 
 from django import forms
 from django.shortcuts import redirect, render
@@ -9,9 +9,10 @@ from django.contrib.auth.decorators import user_passes_test
 from django.contrib.auth import authenticate, login
 from django.contrib.auth import views as auth_views
 from django.db.models import Sum,F
+from geopy import distance,location,Yandex,Point
 
+from foodcartapp.util import fetch_coordinates
 from foodcartapp.models import Product, Restaurant,Order,RestaurantMenuItem
-
 
 class Login(forms.Form):
     username = forms.CharField(
@@ -98,15 +99,30 @@ def view_restaurants(request):
 
 def who_can_cook_orders():
     available_products = defaultdict(set)
-    [available_products[product].add(restaurant) for restaurant, product in RestaurantMenuItem.objects \
-        .filter(availability=True).select_related('restaurant').values_list('restaurant__name', 'product_id')]
+    restaurant_address = {}
+    for restaurant, product, address in RestaurantMenuItem.objects.filter(availability=True).select_related('restaurant')\
+        .values_list('restaurant__name', 'product_id','restaurant__address'):
+        available_products[product].add(restaurant)
+        if restaurant not in restaurant_address:
+            restaurant_address.update({restaurant:fetch_coordinates(address)})
     ordered_products = defaultdict(set)
-    [ordered_products[order].add(product) for order, product in Order.objects \
-        .select_related('basket').filter(status='START').values_list('id', 'basket__product_id')]
-    x = {}
-    for order, basket in ordered_products.items():
-        x.update({order: list(set.intersection(*[available_products[b] for b in basket]))})
-    return x
+    order_address = {}
+    for order, product, address in Order.objects \
+        .select_related('basket').filter(status='START').values_list('id', 'basket__product_id', 'address'):
+        ordered_products[order].add(product)
+        if order not in order_address:
+            order_address.update({order: fetch_coordinates(address)})
+    can_cook = {}
+    Resraurant_location = namedtuple('Resraurant_location', 'name distance')
+    for order, products in ordered_products.items():
+        can_cook.update({order: list(set.intersection(*[available_products[product] for product in products]))})
+        for n, restaurant in enumerate(can_cook[order]):
+            spasing=36000 if not all((order_address[order], restaurant_address[restaurant])
+                                 ) else distance.distance(order_address[order], restaurant_address[restaurant]).km
+            # print('---',order,order_address[order],'---',restaurant,restaurant_address[restaurant],'---',spasing)
+            can_cook[order][n] = Resraurant_location(restaurant,spasing)
+        can_cook[order].sort(key=lambda r: r.distance)
+    return can_cook
 
 @user_passes_test(is_manager, login_url='restaurateur:login')
 def view_orders(request):

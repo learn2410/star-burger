@@ -13,6 +13,7 @@ from geopy import distance,location,Yandex,Point
 
 from foodcartapp.util import fetch_coordinates
 from foodcartapp.models import Product, Restaurant,Order,RestaurantMenuItem
+from geocoder.models import Location
 
 class Login(forms.Form):
     username = forms.CharField(
@@ -97,6 +98,10 @@ def view_restaurants(request):
         'restaurants': Restaurant.objects.all(),
     })
 
+def get_location(address):
+    location,created = Location.objects.get_or_create(address=address)
+    return location.lon,location.lat
+
 def who_can_cook_orders():
     available_products = defaultdict(set)
     restaurant_address = {}
@@ -104,14 +109,16 @@ def who_can_cook_orders():
         .values_list('restaurant__name', 'product_id','restaurant__address'):
         available_products[product].add(restaurant)
         if restaurant not in restaurant_address:
-            restaurant_address.update({restaurant:fetch_coordinates(address)})
+            # restaurant_address.update({restaurant:fetch_coordinates(address)})
+            restaurant_address.update({restaurant: get_location(address)})
     ordered_products = defaultdict(set)
     order_address = {}
     for order, product, address in Order.objects \
         .select_related('basket').filter(status='START').values_list('id', 'basket__product_id', 'address'):
         ordered_products[order].add(product)
         if order not in order_address:
-            order_address.update({order: fetch_coordinates(address)})
+            # order_address.update({order: fetch_coordinates(address)})
+            order_address.update({order: get_location(address)})
     can_cook = {}
     Resraurant_location = namedtuple('Resraurant_location', 'name distance')
     for order, products in ordered_products.items():

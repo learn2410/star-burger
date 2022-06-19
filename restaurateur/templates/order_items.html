@@ -33,7 +33,7 @@
             Готовит: {{ order.restaurant__name }}
           {% elif order.status == 'START' %}
             {% if order.cancook %}
-              {% if order.cancook.0.distance < 36000 %}
+              {% if order.cancook.0.distance < 100 %}
                 <details><summary>▼Может быть приготовлен:</summary>
                   <ul>
                     {% for rest in order.cancook %}

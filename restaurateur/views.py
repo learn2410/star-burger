@@ -8,12 +8,12 @@ from django.contrib.auth.decorators import user_passes_test
 
 from django.contrib.auth import authenticate, login
 from django.contrib.auth import views as auth_views
-from django.db.models import Sum,F
+from django.db.models import Sum,F,Q,Subquery
 from geopy import distance,location,Yandex,Point
 
-from foodcartapp.util import fetch_coordinates
 from foodcartapp.models import Product, Restaurant,Order,RestaurantMenuItem
 from geocoder.models import Location
+from django.utils.crypto import get_random_string
 
 class Login(forms.Form):
     username = forms.CharField(
@@ -98,36 +98,48 @@ def view_restaurants(request):
         'restaurants': Restaurant.objects.all(),
     })
 
-def get_location(address):
-    location,created = Location.objects.get_or_create(address=address)
-    return location.lon,location.lat
+# def get_location(address):
+#     location,created = Location.objects.get_or_create(address=address)
+#     return location.lon,location.lat
 
 def who_can_cook_orders():
-    available_products = defaultdict(set)
+    used_addresses = set()
+    product_in_restaurants = defaultdict(set)
     restaurant_address = {}
     for restaurant, product, address in RestaurantMenuItem.objects.filter(availability=True).select_related('restaurant')\
         .values_list('restaurant__name', 'product_id','restaurant__address'):
-        available_products[product].add(restaurant)
+        product_in_restaurants[product].add(restaurant)
         if restaurant not in restaurant_address:
-            # restaurant_address.update({restaurant:fetch_coordinates(address)})
-            restaurant_address.update({restaurant: get_location(address)})
+            restaurant_address.update({restaurant: address})
+            used_addresses.add(address)
     ordered_products = defaultdict(set)
     order_address = {}
     for order, product, address in Order.objects \
         .select_related('basket').filter(status='START').values_list('id', 'basket__product_id', 'address'):
         ordered_products[order].add(product)
         if order not in order_address:
-            # order_address.update({order: fetch_coordinates(address)})
-            order_address.update({order: get_location(address)})
+            order_address.update({order: address})
+            used_addresses.add(address)
+    geo_addresses={}
+    for address,lon,lat in Location.objects.filter(address__in=list(used_addresses)).values_list('address','lon','lat'):
+        geo_addresses.update({address:(lon,lat)})
     can_cook = {}
     Resraurant_location = namedtuple('Resraurant_location', 'name distance')
     for order, products in ordered_products.items():
-        can_cook.update({order: list(set.intersection(*[available_products[product] for product in products]))})
+        can_cook.update({order: list(set.intersection(*[product_in_restaurants[product] for product in products]))})
         for n, restaurant in enumerate(can_cook[order]):
-            spasing=36000 if not all((order_address[order], restaurant_address[restaurant])
-                                 ) else distance.distance(order_address[order], restaurant_address[restaurant]).km
-            # print('---',order,order_address[order],'---',restaurant,restaurant_address[restaurant],'---',spasing)
-            can_cook[order][n] = Resraurant_location(restaurant,spasing)
+            if restaurant_address[restaurant] in geo_addresses:
+                restaurant_location=geo_addresses[restaurant_address[restaurant]]
+            else:
+                location = Location.objects.create(address=restaurant_address[restaurant])
+                restaurant_location=(location.lon,location.lat)
+            if order_address[order] in geo_addresses:
+                order_location = geo_addresses[order_address[order]]
+            else:
+                location = Location.objects.create(address=order_address[order])
+                order_location=(location.lon,location.lat)
+            spacing=distance.distance(order_location, restaurant_location).km
+            can_cook[order][n] = Resraurant_location(restaurant,spacing)
         can_cook[order].sort(key=lambda r: r.distance)
     return can_cook
 

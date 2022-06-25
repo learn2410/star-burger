@@ -193,12 +193,6 @@ class Basket(models.Model):
     def __str__(self):
         return f"{self.product.name} - {self.quantity} шт. (заказ № {self.order.pk} )"
 
-@receiver(pre_save, sender=Basket)
-def default_basket(sender, instance, **kwargs):
-    try:
-        basket_item = sender.objects.get(pk=instance.pk)
-    except sender.DoesNotExist:
-        instance.cost=instance.product.price
-    else:
-        if not instance.cost or basket_item.product_id != instance.product_id:
-            instance.cost = instance.product.price
+    def fix_cost(self):
+        self.cost=self.product.price
+

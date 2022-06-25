@@ -127,10 +127,15 @@ class OrderAdmin(admin.ModelAdmin):
     inlines = [BasketInline]
     pass
 
+    def save_formset(self, request, form, formset, change):
+        for inline_form in formset.forms:
+            if inline_form.has_changed():
+                inline_form.instance.fix_cost()
+        super().save_formset(request, form, formset, change)
+
     def save_model(self, request, obj, form, change):
         if obj.status=='START' and obj.restaurant:
             obj.status='WORK'
-            # print('** admin-- change status')
         super().save_model(request, obj, form, change)
 
     def response_post_save_change(self, request, obj):

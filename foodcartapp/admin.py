@@ -127,6 +127,12 @@ class OrderAdmin(admin.ModelAdmin):
     inlines = [BasketInline]
     pass
 
+    def save_model(self, request, obj, form, change):
+        if obj.status=='START' and obj.restaurant:
+            obj.status='WORK'
+            # print('** admin-- change status')
+        super().save_model(request, obj, form, change)
+
     def response_post_save_change(self, request, obj):
         if "next" in request.GET and url_has_allowed_host_and_scheme(request.GET['next'], settings.ALLOWED_HOSTS):
             return redirect(request.GET['next'])

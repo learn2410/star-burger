@@ -167,16 +167,6 @@ class Order(models.Model):
             .filter(product__in=ordered_products, availability=True, xprod=len(ordered_products)) \
             .values_list('restaurant__name' if by_name else 'restaurant',flat=True)
 
-@receiver(pre_save, sender=Order)
-def default_basket(sender, instance, **kwargs):
-    try:
-        order = sender.objects.get(pk=instance.pk)
-    except sender.DoesNotExist:
-        pass
-    else:
-        if order.restaurant is None and instance.restaurant:
-            instance.status='WORK'
-
 
 class Basket(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='basket', verbose_name='Заказ')

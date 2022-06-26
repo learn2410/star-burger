@@ -5,7 +5,7 @@ from django.templatetags.static import static
 from django.utils.html import format_html
 from django.utils.http import is_safe_url,url_has_allowed_host_and_scheme
 
-from .models import Basket
+from .models import OrderedProduct
 from .models import Order
 from .models import Product
 from .models import ProductCategory
@@ -115,7 +115,7 @@ class ProductAdmin(admin.ModelAdmin):
     pass
 
 class BasketInline(admin.TabularInline):
-    model = Basket
+    model = OrderedProduct
     extra = 0
     fields = ('order','product','quantity','cost')
     readonly_fields = ('cost',)

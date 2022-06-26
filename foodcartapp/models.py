@@ -160,7 +160,7 @@ class Order(models.Model):
 
     def can_cook(self, by_name=False):
         ''' resaurants who can cook ordered products, return tuple of restaurant_id (or restaurant_name)'''
-        ordered_products = Basket.objects.filter(order_id=self.id).values_list('product_id', flat=True)
+        ordered_products = OrderedProduct.objects.filter(order_id=self.id).values_list('product_id', flat=True)
         return RestaurantMenuItem.objects \
             .values('restaurant') \
             .annotate(xprod=Count('product', product__in=ordered_products, availability=True)) \
@@ -168,7 +168,7 @@ class Order(models.Model):
             .values_list('restaurant__name' if by_name else 'restaurant',flat=True)
 
 
-class Basket(models.Model):
+class OrderedProduct(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='basket', verbose_name='Заказ')
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='food', verbose_name='Продукт')
     quantity = models.PositiveIntegerField(

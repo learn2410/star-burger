@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from rest_framework.serializers import ModelSerializer
 from django.db.models import F,Subquery,OuterRef
 from django.db import transaction
-from .models import Product, Order, Basket
+from .models import Product, Order, OrderedProduct
 
 
 def banners_list_api(request):
@@ -62,7 +62,7 @@ def product_list_api(request):
 
 class ProductsSerializer(ModelSerializer):
     class Meta:
-        model = Basket
+        model = OrderedProduct
         fields = ['product', 'quantity']
 
 
@@ -83,7 +83,7 @@ def register_order(request):
     order_data = {field: serializer.validated_data[field]
                   for field in ['firstname', 'lastname', 'phonenumber', 'address']}
     order = Order.objects.create(**order_data)
-    basket = [Basket(order=order,cost=fields['product'].price,**fields)
+    basket = [OrderedProduct(order=order, cost=fields['product'].price, **fields)
               for fields in serializer.validated_data['products']]
-    Basket.objects.bulk_create(basket)
+    OrderedProduct.objects.bulk_create(basket)
     return Response(OrderSerializer(order).data)

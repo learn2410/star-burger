@@ -1,10 +1,9 @@
 from django.core.validators import MinValueValidator
 from django.db import models
+from django.db.models import Count
 from django.utils import timezone
 from phonenumber_field.modelfields import PhoneNumberField
-from django.db.models.signals import pre_save
-from django.dispatch import receiver
-from django.db.models import Count
+
 
 class Restaurant(models.Model):
     name = models.CharField(
@@ -136,11 +135,11 @@ class Order(models.Model):
     PAYMENTS = (
         ("CASH", "наличные"),
         ("ELEСTRON", "безналичные"),
-        ("UNDEFINED","-не указано"),
+        ("UNDEFINED", "-не указано"),
     )
-    status = models.CharField("Статус", max_length=10,  db_index=True, choices=STATUSES, default="START")
-    restaurant = models.ForeignKey(Restaurant,on_delete=models.CASCADE,related_name='orders',
-                                   verbose_name='Готовит',blank=True,null=True,default=None)
+    status = models.CharField("Статус", max_length=10, db_index=True, choices=STATUSES, default="START")
+    restaurant = models.ForeignKey(Restaurant, on_delete=models.CASCADE, related_name='orders',
+                                   verbose_name='Готовит', blank=True, null=True, default=None)
     payment = models.CharField("Оплата", max_length=10, db_index=True, choices=PAYMENTS, default="UNDEFINED")
     firstname = models.CharField('Имя', max_length=50, db_index=True)
     lastname = models.CharField('Фамилия', max_length=50, db_index=True)
@@ -165,12 +164,13 @@ class Order(models.Model):
             .values('restaurant') \
             .annotate(xprod=Count('product', product__in=ordered_products, availability=True)) \
             .filter(product__in=ordered_products, availability=True, xprod=len(ordered_products)) \
-            .values_list('restaurant__name' if by_name else 'restaurant',flat=True)
+            .values_list('restaurant__name' if by_name else 'restaurant', flat=True)
 
 
 class OrderedProduct(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='products', verbose_name='Заказ')
-    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='ordered_products', verbose_name='Продукт')
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='ordered_products',
+                                verbose_name='Продукт')
     quantity = models.PositiveIntegerField(
         verbose_name='Количество',
         validators=[MinValueValidator(1)],
@@ -194,5 +194,4 @@ class OrderedProduct(models.Model):
         return f"{self.product.name} - {self.quantity} шт. (заказ № {self.order.pk} )"
 
     def fix_cost(self):
-        self.cost=self.product.price
-
+        self.cost = self.product.price

@@ -1,10 +1,10 @@
+from django.db import transaction
 from django.http import JsonResponse
 from django.templatetags.static import static
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework.serializers import ModelSerializer
-from django.db.models import F,Subquery,OuterRef
-from django.db import transaction
+
 from .models import Product, Order, OrderedProduct
 
 
@@ -67,12 +67,12 @@ class ProductsSerializer(ModelSerializer):
 
 
 class OrderSerializer(ModelSerializer):
-    products = ProductsSerializer(many=True, allow_empty=False,write_only=True)
+    products = ProductsSerializer(many=True, allow_empty=False, write_only=True)
 
     class Meta:
         model = Order
         read_only_fields = ['id']
-        fields = ['id','firstname', 'lastname', 'phonenumber', 'address', 'products']
+        fields = ['id', 'firstname', 'lastname', 'phonenumber', 'address', 'products']
 
 
 @api_view(['POST'])
@@ -81,7 +81,7 @@ def register_order(request):
     serializer = OrderSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
     serialized_order = {field: serializer.validated_data[field]
-                  for field in ['firstname', 'lastname', 'phonenumber', 'address']}
+                        for field in ['firstname', 'lastname', 'phonenumber', 'address']}
     order = Order.objects.create(**serialized_order)
     basket = [OrderedProduct(order=order, cost=fields['product'].price, **fields)
               for fields in serializer.validated_data['products']]

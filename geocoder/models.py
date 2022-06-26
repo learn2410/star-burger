@@ -16,11 +16,20 @@ def fetch_coordinates(address, apikey=settings.YANDEX_KEY):
     response.raise_for_status()
     found_places = response.json()['response']['GeoObjectCollection']['featureMember']
     if not found_places:
-        return None,None
+        return None, None
     most_relevant = found_places[0]
     lon, lat = most_relevant['GeoObject']['Point']['pos'].split(" ")
     return lon, lat
 
+def add_geocoder_addresses(addresses):
+    new_geo_addresses={}
+    locations=[]
+    for address in addresses:
+        lon,lat = fetch_coordinates(address)
+        locations.append(Location(address=address,lon=lon,lat=lat))
+        new_geo_addresses.update({address:(lon,lat)})
+        Location.objects.bulk_create(locations)
+    return new_geo_addresses
 
 class Location(models.Model):
     address = models.CharField('Адрес', max_length=100, unique=True)
@@ -35,16 +44,3 @@ class Location(models.Model):
     def __str__(self):
         return f'{self.address}'
 
-
-@receiver(pre_save, sender=Location)
-def default_location(sender, instance, **kwargs):
-    try:
-        location = sender.objects.get(pk=instance.pk)
-    except sender.DoesNotExist:
-        lon, lat = fetch_coordinates(instance.address)
-        instance.lon, instance.lat = lon, lat
-    else:
-        if instance.address != location.address or not location.lon or not location.lat:
-            lon, lat = fetch_coordinates(instance.address)
-            instance.lon, instance.lat = lon, lat
-            instance.timestamp = timezone.now

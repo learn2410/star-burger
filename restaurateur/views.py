@@ -12,7 +12,7 @@ from django.db.models import Sum,F,Q,Subquery
 from geopy import distance,location,Yandex,Point
 
 from foodcartapp.models import Product, Restaurant,Order,RestaurantMenuItem
-from geocoder.models import Location
+from geocoder.models import Location,add_geocoder_addresses
 from django.utils.crypto import get_random_string
 
 class Login(forms.Form):
@@ -123,6 +123,10 @@ def who_can_cook_orders():
     geo_addresses={}
     for address,lon,lat in Location.objects.filter(address__in=list(used_addresses)).values_list('address','lon','lat'):
         geo_addresses.update({address:(lon,lat)})
+        used_addresses.discard(address)
+    if len(used_addresses)>0:
+        new_geo_addresses = add_geocoder_addresses(used_addresses)
+        geo_addresses.update(new_geo_addresses)
     can_cook = {}
     Resraurant_location = namedtuple('Resraurant_location', 'name distance')
     for order, products in ordered_products.items():

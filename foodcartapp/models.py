@@ -139,7 +139,7 @@ class Order(models.Model):
         ("UNDEFINED","-не указано"),
     )
     status = models.CharField("Статус", max_length=10,  db_index=True, choices=STATUSES, default="START")
-    restaurant = models.ForeignKey(Restaurant,on_delete=models.CASCADE,related_name='order',
+    restaurant = models.ForeignKey(Restaurant,on_delete=models.CASCADE,related_name='orders',
                                    verbose_name='Готовит',blank=True,null=True,default=None)
     payment = models.CharField("Оплата", max_length=10, db_index=True, choices=PAYMENTS, default="UNDEFINED")
     firstname = models.CharField('Имя', max_length=50, db_index=True)

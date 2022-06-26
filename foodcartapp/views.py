@@ -80,9 +80,9 @@ class OrderSerializer(ModelSerializer):
 def register_order(request):
     serializer = OrderSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
-    order_data = {field: serializer.validated_data[field]
+    serialized_order = {field: serializer.validated_data[field]
                   for field in ['firstname', 'lastname', 'phonenumber', 'address']}
-    order = Order.objects.create(**order_data)
+    order = Order.objects.create(**serialized_order)
     basket = [OrderedProduct(order=order, cost=fields['product'].price, **fields)
               for fields in serializer.validated_data['products']]
     OrderedProduct.objects.bulk_create(basket)

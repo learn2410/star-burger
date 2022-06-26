@@ -115,7 +115,7 @@ def who_can_cook_orders():
     ordered_products = defaultdict(set)
     order_address = {}
     for order, product, address in Order.objects \
-        .select_related('basket').filter(status='START').values_list('id', 'basket__product_id', 'address'):
+        .select_related('products').filter(status='START').values_list('id', 'products__product_id', 'address'):
         ordered_products[order].add(product)
         if order not in order_address:
             order_address.update({order: address})
@@ -152,7 +152,7 @@ def view_orders(request):
     fields = ('id', 'status', 'phonenumber', 'address', 'comment', 'restaurant__name')
     can_cook = who_can_cook_orders()
     orders = list(Order.objects.filter(status__in=("START","WORK")) \
-        .select_related('restaurant', 'basket') \
+        .select_related('restaurant', 'products') \
         .order_by('status','id') \
         .values(*fields))
         # .annotate(cost=Sum(F('basket__cost') * F('basket__quantity')))

@@ -114,7 +114,7 @@ class ProductAdmin(admin.ModelAdmin):
 class ProductAdmin(admin.ModelAdmin):
     pass
 
-class BasketInline(admin.TabularInline):
+class OrderedProductInline(admin.TabularInline):
     model = OrderedProduct
     extra = 0
     fields = ('order','product','quantity','cost')
@@ -124,7 +124,7 @@ class BasketInline(admin.TabularInline):
 class OrderAdmin(admin.ModelAdmin):
     search_fields = ['id', 'firstname', 'lastname', 'phonenumber', 'address']
     ordering = ['id']
-    inlines = [BasketInline]
+    inlines = [OrderedProductInline]
     pass
 
     def save_formset(self, request, form, formset, change):

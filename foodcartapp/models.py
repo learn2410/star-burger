@@ -169,8 +169,8 @@ class Order(models.Model):
 
 
 class OrderedProduct(models.Model):
-    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='basket', verbose_name='Заказ')
-    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='food', verbose_name='Продукт')
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='products', verbose_name='Заказ')
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='ordered_products', verbose_name='Продукт')
     quantity = models.PositiveIntegerField(
         verbose_name='Количество',
         validators=[MinValueValidator(1)],

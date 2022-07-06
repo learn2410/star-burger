@@ -130,7 +130,7 @@ class OrderAdmin(admin.ModelAdmin):
     def save_formset(self, request, form, formset, change):
         for inline_form in formset.forms:
             if inline_form.has_changed() and 'product' in inline_form.changed_data:
-                inline_form.instance.fix_cost()
+                inline_form.instance.cost=inline_form.instance.product.price
         super().save_formset(request, form, formset, change)
 
     def save_model(self, request, obj, form, change):

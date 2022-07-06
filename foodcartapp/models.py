@@ -192,6 +192,3 @@ class OrderedProduct(models.Model):
 
     def __str__(self):
         return f"{self.product.name} - {self.quantity} шт. (заказ № {self.order.pk} )"
-
-    def fix_cost(self):
-        self.cost = self.product.price

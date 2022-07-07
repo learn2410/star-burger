@@ -4,6 +4,7 @@ from django.shortcuts import reverse, redirect
 from django.templatetags.static import static
 from django.utils.html import format_html
 from django.utils.http import is_safe_url,url_has_allowed_host_and_scheme
+from django.db.models import Count
 
 from .models import OrderedProduct
 from .models import Order
@@ -148,6 +149,11 @@ class OrderAdmin(admin.ModelAdmin):
         if db_field.name == "restaurant":
             path = str(request.path).split('/')
             if path[-2] == 'change':
-                filter = Order.objects.get(pk=int(path[-3])).can_cook()
+                ordered_products = Order.objects.get(pk=int(path[-3])).products.values_list('product_id', flat=True)
+                filter = RestaurantMenuItem.objects \
+                    .values('restaurant') \
+                    .annotate(xprod=Count('product', product__in=ordered_products, availability=True)) \
+                    .filter(product__in=ordered_products, availability=True, xprod=len(ordered_products)) \
+                    .values_list('restaurant', flat=True)
                 kwargs["queryset"] = Restaurant.objects.filter(id__in=filter)
         return super().formfield_for_foreignkey(db_field, request, **kwargs)

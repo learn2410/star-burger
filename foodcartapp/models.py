@@ -157,15 +157,6 @@ class Order(models.Model):
     def __str__(self):
         return (f'{self.id} ({self.firstname} {self.lastname} тел.{self.phonenumber}, {self.address})')
 
-    def can_cook(self, by_name=False):
-        ''' resaurants who can cook ordered products, return tuple of restaurant_id (or restaurant_name)'''
-        ordered_products = self.products.values_list('product_id', flat=True)
-        return RestaurantMenuItem.objects \
-            .values('restaurant') \
-            .annotate(xprod=Count('product', product__in=ordered_products, availability=True)) \
-            .filter(product__in=ordered_products, availability=True, xprod=len(ordered_products)) \
-            .values_list('restaurant__name' if by_name else 'restaurant', flat=True)
-
 
 class OrderedProduct(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='products', verbose_name='Заказ')

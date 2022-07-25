@@ -100,7 +100,7 @@ def view_restaurants(request):
 @user_passes_test(is_manager, login_url='restaurateur:login')
 def view_orders(request):
     fields = ('id', 'status', 'phonenumber', 'address', 'comment', 'restaurant__name')
-    can_cook = Order.objects.filter(status='START').who_can_cook_orders()
+    can_cook = Order.objects.filter(status='START').can_cook_with_distance()
     orders = list(Order.objects.filter(status__in=("START", "WORK")) \
                   .select_related('restaurant', 'products') \
                   .order_by('status', 'id') \

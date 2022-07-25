@@ -125,6 +125,7 @@ class OrderedProductInline(admin.TabularInline):
 class OrderAdmin(admin.ModelAdmin):
     search_fields = ['id', 'firstname', 'lastname', 'phonenumber', 'address']
     ordering = ['id']
+    list_filter = ('status', 'restaurant')
     inlines = [OrderedProductInline]
     pass
 
@@ -149,11 +150,7 @@ class OrderAdmin(admin.ModelAdmin):
         if db_field.name == "restaurant":
             path = str(request.path).split('/')
             if path[-2] == 'change':
-                ordered_products = Order.objects.get(pk=int(path[-3])).products.values_list('product_id', flat=True)
-                filter = RestaurantMenuItem.objects \
-                    .values('restaurant') \
-                    .annotate(xprod=Count('product', product__in=ordered_products, availability=True)) \
-                    .filter(product__in=ordered_products, availability=True, xprod=len(ordered_products)) \
-                    .values_list('restaurant', flat=True)
-                kwargs["queryset"] = Restaurant.objects.filter(id__in=filter)
+                order_id = int(path[-3])
+                restaurants = Order.objects.filter(pk=order_id).calc_can_cook()[order_id]
+                kwargs["queryset"] = Restaurant.objects.filter(id__in=restaurants)
         return super().formfield_for_foreignkey(db_field, request, **kwargs)

@@ -130,53 +130,74 @@ class RestaurantMenuItem(models.Model):
 
 
 class OrderQuerySet(models.QuerySet):
-    def who_can_cook_orders(self):
-        used_addresses = set()
+    def calc_can_cook(self):
+        """
+        Calulate which restaurant can cook orders in current Order queryset
+        return: dict like this:
+            {order_id:[restaurant_id,restaurant_id,...] , order_id:[], ...}
+        """
         product_in_restaurants = defaultdict(set)
-        restaurant_address = {}
-        for restaurant, product, address in RestaurantMenuItem.objects.filter(availability=True).select_related(
-            'restaurant') \
-            .values_list('restaurant__name', 'product_id', 'restaurant__address'):
+        restaurant_query = RestaurantMenuItem.objects \
+            .filter(availability=True) \
+            .select_related('restaurant') \
+            .values_list('restaurant_id', 'product_id')
+        for restaurant, product in restaurant_query:
             product_in_restaurants[product].add(restaurant)
-            if restaurant not in restaurant_address:
-                restaurant_address.update({restaurant: address})
-                used_addresses.add(address)
         ordered_products = defaultdict(set)
-        order_address = {}
         orders_query = self.select_related('products') \
-            .values_list('id', 'products__product_id', 'address')
-        for order, product, address in orders_query:
+            .values_list('id', 'products__product_id')
+        for order, product in orders_query:
             ordered_products[order].add(product)
-            if order not in order_address:
-                order_address.update({order: address})
-                used_addresses.add(address)
+        can_cook = {}
+        for order, products in ordered_products.items():
+            can_cook.update({
+                order: list(set.intersection(*[product_in_restaurants[product] for product in products]))
+            })
+        return can_cook
+
+    def can_cook_with_distance(self, restaurant_by_name=True):
+        """
+        Used calc_can_cook() and return: dict like this:
+            {order_id:[namedtuple(name,distance), ...] , order_id:[], ...}
+        where 'name' mean restaurant name, if restaurant_by_name=True else  restaurant id
+              'distance' - distance between addresses order and restaurant
+        """
+        can_cook = self.calc_can_cook()
+        restaurant_ids = list(set.union(*[set(restaurant) for restaurant in can_cook.values()]))
+        restaurants_raw = Restaurant.objects.filter(id__in=restaurant_ids).values('id', 'address', 'name')
+        restaurants_names = {restaurant['id']: restaurant['name'] for restaurant in restaurants_raw}
+        restaurants_addreses = {restaurant['id']: restaurant['address'] for restaurant in restaurants_raw}
+        order_ids = can_cook.keys()
+        orders = Order.objects.filter(id__in=order_ids).values('id', 'address')
+        orders_addresses = {order['id']: order['address'] for order in orders}
+        used_addresses = set(list(orders_addresses.values()) + list(restaurants_addreses.values()))
+
         geo_addresses = {}
-        for address, lon, lat in Location.objects.filter(address__in=list(used_addresses)).values_list('address', 'lon',
-                                                                                                       'lat'):
+        geo_query = Location.objects \
+            .filter(address__in=list(used_addresses)) \
+            .values_list('address', 'lon', 'lat')
+        for address, lon, lat in geo_query:
             geo_addresses.update({address: (lon, lat)})
             used_addresses.discard(address)
         if len(used_addresses) > 0:
             new_geo_addresses = add_geocoder_addresses(used_addresses)
             geo_addresses.update(new_geo_addresses)
-        can_cook = {}
+
+        new_can_cook = {}
         Resraurant_location = namedtuple('Resraurant_location', 'name distance')
-        for order, products in ordered_products.items():
-            can_cook.update({order: list(set.intersection(*[product_in_restaurants[product] for product in products]))})
-            for n, restaurant in enumerate(can_cook[order]):
-                if restaurant_address[restaurant] in geo_addresses:
-                    restaurant_location = geo_addresses[restaurant_address[restaurant]]
-                else:
-                    location = Location.objects.create(address=restaurant_address[restaurant])
-                    restaurant_location = (location.lon, location.lat)
-                if order_address[order] in geo_addresses:
-                    order_location = geo_addresses[order_address[order]]
-                else:
-                    location = Location.objects.create(address=order_address[order])
-                    order_location = (location.lon, location.lat)
-                spacing = distance.distance(order_location, restaurant_location).km
-                can_cook[order][n] = Resraurant_location(restaurant, spacing)
-            can_cook[order].sort(key=lambda r: r.distance)
-        return can_cook
+        restaurant_locations = {restaurant: geo_addresses[address]
+                                for restaurant, address in restaurants_addreses.items()}
+        for order, restaurants in can_cook.items():
+            order_location = geo_addresses[orders_addresses[order]]
+            new_can_cook.update({order: []})
+            for restaurant in restaurants:
+                new_can_cook[order].append(Resraurant_location(
+                    restaurants_names[restaurant] if restaurant_by_name else restaurant,
+                    distance.distance(order_location, restaurant_locations[restaurant]).km)
+                    )
+            if len(new_can_cook[order]) > 0:
+                new_can_cook[order].sort(key=lambda r: r[1])
+        return new_can_cook
 
 
 class Order(models.Model):

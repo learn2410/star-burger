@@ -1,6 +1,8 @@
 import os
+import sys
 
 import dj_database_url
+import rollbar
 from environs import Env
 
 env = Env()
@@ -39,7 +41,9 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'debug_toolbar.middleware.DebugToolbarMiddleware',
+    'rollbar.contrib.django.middleware.RollbarNotifierMiddlewareExcluding404',
 ]
+#'rollbar.contrib.django.middleware.RollbarNotifierMiddleware',
 
 ROOT_URLCONF = 'star_burger.urls'
 
@@ -123,8 +127,16 @@ STATICFILES_DIRS = [
     os.path.join(BASE_DIR, "bundles"),
 ]
 
+ROLLBAR = {
+    'access_token': env.str('ROLLBAR_TOKEN'),
+    'environment': env.str('ROLLBAR_ENVIRONMENT','production'),
+    'root': BASE_DIR,
+}
+import rollbar
+rollbar.init(**ROLLBAR)
+
 # the next code will activate panel DjDT (OS-Windows)
-if DEBUG:
+if DEBUG and sys.platform == 'win32':
     import mimetypes
 
     mimetypes.add_type("application/javascript", ".js", True)

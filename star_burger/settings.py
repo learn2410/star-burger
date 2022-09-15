@@ -130,6 +130,7 @@ STATICFILES_DIRS = [
 ROLLBAR = {
     'access_token': env.str('ROLLBAR_TOKEN'),
     'environment': env.str('ROLLBAR_ENVIRONMENT','production'),
+    'itemsPerMinute': env.int('ROLLBAR_MAX_QUANTITY', 3),
     'root': BASE_DIR,
 }
 import rollbar
